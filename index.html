@@ -69,7 +69,8 @@ table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:6
 <div class="grid" id="grid"></div>
 <details>
 <summary>Comment c'est calculé</summary>
-<p><b>Démarrage d'une vague</b> : une vague démarre le jour où la pluie cumulée sur 3 jours (les 2 jours précédents et le jour même) dépasse 20 mm. Les jours à moins de 3 mm sont ignorés : ces petites pluies sont retenues par le feuillage et la litière et n'atteignent pas le sol. Chaque vague a sa propre ligne. Deux franchissements à moins de 5 jours d'écart comptent pour une seule vague.</p>
+<p><b>Démarrage d'une vague</b> : une vague démarre le jour où la pluie cumulée sur 3 jours (les 2 jours précédents et le jour même) dépasse 20 mm. Les jours à moins de 3 mm sont ignorés : ces petites pluies sont retenues par le feuillage et la litière et n'atteignent pas le sol. Chaque vague a sa propre ligne. Deux déclenchements à 5 jours ou moins d'écart comptent pour une seule vague.</p>
+<p><b>Choc thermique</b> : sans pluie, une vague démarre aussi quand la température moyenne du sol (6 cm) baisse d'au moins 4 °C en 3 jours, à condition qu'elle soit partie d'au moins 12 °C et que l'humidité du sol soit d'au moins 20 %. Ces vagues sont nommées « Choc » au lieu de « Pluie ». C'est une piste issue du savoir des cueilleurs, moins établie que l'effet de la pluie.</p>
 <p><b>Âge de la vague</b> : depuis le démarrage, on additionne chaque jour la température moyenne du sol (6 cm) au-dessus de 5 °C : ce sont les degrés-jours, affichés dans chaque case. Moins de 80 : pas encore sortis. 80 à 110 : jeunes. 110 à 150 : pleine pousse. 150 à 190 : vieux. Au-delà : terminé.</p>
 <p><b>Pousse freinée</b> : une case en cours de pousse est pâlie et barrée quand l'humidité du sol (3 à 9 cm, moyenne sur 4 jours) passe sous 15 %, ou après une nuit sous 0 °C dans les 4 derniers jours.</p>
 <p>Ces seuils sont des estimations de départ, à ajuster avec les sorties. Ce sont des repères de cueilleurs, pas un modèle validé : le sol, l'exposition et la forêt de chaque coin comptent autant.</p>
@@ -143,13 +144,23 @@ function pill(a){
 }
 function vagues(loc,from,to){
  const days=loc.daily.time,rain=loc.daily.precipitation_sum.map(x=>x||0);
- const dm=i=>{const v=loc.hourly.soil_temperature_6cm.slice(i*24,i*24+24).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+ const avg=(arr,i)=>{const v=arr.slice(i*24,i*24+24).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+ const dm=i=>avg(loc.hourly.soil_temperature_6cm,i),dh=i=>avg(loc.hourly.soil_moisture_3_to_9cm,i);
  const PMIN=3,re=x=>(x||0)>=PMIN?x:0;const r3=t=>re(rain[t])+re(rain[t-1])+re(rain[t-2]);
- let ev=[];
- for(let t=2;t<=to;t++){if(r3(t)>=20&&r3(t-1)<20){if(!(ev.length&&t-ev[ev.length-1]<=5))ev.push(t)}}
+ const choc=t=>{if(t<3)return false;const a=dm(t-3),b=dm(t),h=dh(t);return a!=null&&b!=null&&h!=null&&a>=12&&a-b>=4&&h>=0.20};
+ const cand=[];
+ for(let t=3;t<=to;t++){
+  if(r3(t)>=20&&r3(t-1)<20)cand.push({t,kind:"Pluie"});
+  else if(choc(t)&&!choc(t-1))cand.push({t,kind:"Choc"});
+ }
+ const ev=[];for(const c of cand){if(ev.length&&c.t-ev[ev.length-1].t<=5)continue;ev.push(c)}
  const out=[];
- for(const t of ev){const dj=[];let s=0;for(let k=t+1;k<=to;k++){const v=dm(k);if(v!=null)s+=Math.max(0,v-5);dj[k]=s}dj[t]=0;
-  const atFrom=t>=from?0:dj[from];if(atFrom>=190)continue;let e=t;while(e+1<=to&&r3(e+1)>=20)e++;let mm=0;for(let k=Math.max(0,t-2);k<=e;k++)mm+=re(rain[k]);out.push({t,d:days[t],dj,mm:Math.round(mm)})}
+ for(const c of ev){const t=c.t;const dj=[];let s=0;for(let k=t+1;k<=to;k++){const v=dm(k);if(v!=null)s+=Math.max(0,v-5);dj[k]=s}dj[t]=0;
+  const atFrom=t>=from?0:dj[from];if(atFrom>=190)continue;
+  let info;
+  if(c.kind==="Pluie"){let e=t;while(e+1<=to&&r3(e+1)>=20)e++;let mm=0;for(let k=Math.max(0,t-2);k<=e;k++)mm+=re(rain[k]);info=`Pluie : ${Math.round(mm)} mm`}
+  else{info=`Choc thermique : sol de ${dm(t-3).toFixed(1)} à ${dm(t).toFixed(1)} °C en 3 jours, humidité ${Math.round(dh(t)*100)} %`}
+  out.push({t,d:days[t],dj,kind:c.kind,info})}
  return out;
 }
 async function main(){
@@ -172,13 +183,13 @@ async function main(){
   const m=document.createElement("div");m.className="meta";const r0=x.res[ti];
   m.textContent=`${x.s.t} du Bouscat · sol ${r0.sm!=null?r0.sm.toFixed(1):"?"} °C · humidité ${r0.hm!=null?Math.round(r0.hm*100):"?"} %`;c.appendChild(m);
   const vg=vagues(j[all.indexOf(x)],from,to);
-  if(!vg.length){const nn=document.createElement("div");nn.className="pill2";nn.textContent="Aucune pluie déclenchante récente";c.appendChild(nn)}
+  if(!vg.length){const nn=document.createElement("div");nn.className="pill2";nn.textContent="Aucune vague récente (pluie ou choc thermique)";c.appendChild(nn)}
   for(const g of vg){
-   const row=document.createElement("div");row.className="row";const lab=document.createElement("div");lab.className="lab w";lab.textContent="Pluie "+fmtD(g.d);row.appendChild(lab);
+   const row=document.createElement("div");row.className="row";const lab=document.createElement("div");lab.className="lab w";lab.textContent=g.kind+" "+fmtD(g.d);row.appendChild(lab);
    const cells=document.createElement("div");cells.className="cells fl";cells.style.gridTemplateColumns=cols;
    for(let i=from;i<=to;i++){const e=document.createElement("div");const dj=g.dj[i];
     if(i<g.t||dj==null){e.className="c empty"}else{const p=phase(dj);const rr=x.res[i];const sec=rr&&rr.hm!=null&&rr.hm<0.15,gl=rr&&rr.gel;e.className="c"+(i===ti?" today":"")+(i>ti?" fc":"")+((sec||gl)&&dj>=80&&dj<190?" stop":"");e.style.background=p.c;e.textContent=Math.round(dj);
-     const html=`<b>Vague de la pluie du ${fmtD(g.d)}${g.t>ti?" (prévue)":""}</b><br>${fmt(x.res[i].d)}${i>ti?" (prévision)":""}<br>${Math.round(dj)} degrés-jours : ${p.l}<br>Pluie : ${g.mm} mm${sec?"<br>Sol trop sec (humidité "+Math.round(rr.hm*100)+" %) : pousse freinée":""}${gl?"<br>Gel récent : pousse freinée":""}`;
+     const html=`<b>Vague ${g.kind==="Choc"?"du choc thermique":"de la pluie"} du ${fmtD(g.d)}${g.t>ti?" (prévu)":""}</b><br>${fmt(x.res[i].d)}${i>ti?" (prévision)":""}<br>${Math.round(dj)} degrés-jours : ${p.l}<br>${g.info}${sec?"<br>Sol trop sec (humidité "+Math.round(rr.hm*100)+" %) : pousse freinée":""}${gl?"<br>Gel récent : pousse freinée":""}`;
      e.addEventListener("mousemove",ev=>showTip(ev,html));e.addEventListener("mouseleave",hideTip);e.addEventListener("click",ev=>showTip(ev,html))}
     cells.appendChild(e)}
    row.appendChild(cells);c.appendChild(row)}
