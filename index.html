@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Indice de pousse : cèpes et bolets bais</title>
+<title>Indice de pousse : cèpes</title>
 <style>
 :root{--bg:#f6f3ec;--card:#fff;--ink:#2b2a26;--mute:#7a756a;--line:#e4ddcf;--cep:#7a4a1f;--bai:#4a5d23;--accent:#a3501e}
 *{box-sizing:border-box}
@@ -48,7 +48,7 @@ table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:6
 </head>
 <body>
 <div class="wrap">
-<h1>Indice de pousse : cèpes et bolets bais</h1>
+<h1>Indice de pousse : cèpes</h1>
 <div class="sub">Secteurs forestiers au nord et à l'ouest du Bouscat, jusqu'à 1 h de route. Calcul simple à partir de la pluie et de la température du sol.</div>
 <div class="status" id="status">Chargement des données météo…</div>
 <div class="top" id="top"></div>
@@ -66,10 +66,10 @@ table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:6
 <summary>Comment l'indice est calculé</summary>
 <p>Pour chaque jour et chaque secteur, un score de 0 à 100 multiplie quatre facteurs :</p>
 <ol>
-<li><b>Pluie déclenchante</b> : le cumul de pluie tombé entre 25 et 6 jours avant le jour visé. 30 mm ou plus donnent le maximum ; moins donne un facteur proportionnel. Les bolets sortent en général 1 à 3 semaines après une bonne pluie.</li>
+<li><b>Pluie déclenchante</b> : le cumul de pluie tombé entre 25 et 6 jours avant le jour visé. 30 mm ou plus donnent le maximum ; moins donne un facteur proportionnel. Les cèpes sortent en général 1 à 3 semaines après une bonne pluie.</li>
 <li><b>Humidité du sol</b> (3 à 9 cm, moyenne des 4 derniers jours) : nulle sous 10 %, maximale au-dessus de 20 %. Un sol qui sèche arrête la pousse.</li>
-<li><b>Température du sol</b> (à 6 cm, moyenne des 4 derniers jours) : optimum 11 à 18 °C pour le cèpe, 7 à 16 °C pour le bai. Le facteur baisse en dehors, jusqu'à 0 à 6 et 23 °C pour le cèpe, 3 et 21 °C pour le bai.</li>
-<li><b>Gel</b> : une nuit sous 0 °C dans les 4 derniers jours divise fortement le score du cèpe (×0,3) et moins celui du bai (×0,6).</li>
+<li><b>Température du sol</b> (à 6 cm, moyenne des 4 derniers jours) : optimum 11 à 18 °C. Le facteur baisse en dehors, jusqu'à 0 à 6 et 23 °C.</li>
+<li><b>Gel</b> : une nuit sous 0 °C dans les 4 derniers jours divise fortement le score (×0,3).</li>
 </ol>
 <p>Ce sont des repères de cueilleurs, pas un modèle validé : l'indice dit quand les conditions sont réunies, pas qu'il y aura des champignons. Le sol, l'exposition et la forêt de chaque coin comptent autant.</p>
 </details>
@@ -89,7 +89,7 @@ const SECTEURS=[
  {n:"Carcans",lat:45.08,lon:-1.03,t:"55 min"},
  {n:"Hourtin",lat:45.19,lon:-1.03,t:"1 h"}
 ];
-const SP={cepe:{nom:"Cèpe",lo0:6,lo1:11,hi1:18,hi0:23,gel:0.3},bai:{nom:"Bai",lo0:3,lo1:7,hi1:16,hi0:21,gel:0.6}};
+const SP={cepe:{nom:"Cèpe",lo0:6,lo1:11,hi1:18,hi0:23,gel:0.3}};
 const PAST=40,FUT=16,SHOW_BEFORE=3,SHOW_AFTER=14;
 function tf(t,s){if(t==null)return 0;if(t>=s.lo1&&t<=s.hi1)return 1;if(t<=s.lo0||t>=s.hi0)return 0;return t<s.lo1?(t-s.lo0)/(s.lo1-s.lo0):(s.hi0-t)/(s.hi0-s.hi1)}
 function color(v){return v<20?"#d9d3c5":v<40?"#e9c46a":v<60?"#e07a2e":v<80?"#b5401c":"#6b1d0f"}
@@ -130,16 +130,14 @@ async function main(){
  const top=document.getElementById("top");top.innerHTML="";
  const mk=(l,m)=>{const d=document.createElement("div");d.className="kpi";d.innerHTML=`<div class="l"></div><div class="v"></div><div class="d"></div>`;d.querySelector(".l").textContent=l;d.querySelector(".v").textContent=m.v+" / 100";d.querySelector(".v").style.color=color(m.v);d.querySelector(".d").textContent=m.n+", "+fmt(m.d);top.appendChild(d)};
  mk("Meilleur secteur cèpe aujourd'hui",best("cepe",ti,ti));
- mk("Meilleur secteur bai aujourd'hui",best("bai",ti,ti));
  mk("Meilleur jour cèpe (7 prochains jours)",best("cepe",ti+1,ti+7));
- mk("Meilleur jour bai (7 prochains jours)",best("bai",ti+1,ti+7));
  // ranking
  const rk=document.getElementById("rank");
  const avg=(x,k)=>{let s=0,n=0;for(let i=ti;i<=ti+3;i++){const r=x.res[i];if(r){s+=r[k];n++}}return n?Math.round(s/n):0};
- const rows=all.map(x=>({n:x.s.n,t:x.s.t,c:x.res[ti].cepe,b:x.res[ti].bai,c4:avg(x,"cepe"),b4:avg(x,"bai")})).sort((a,b)=>(b.c+b.b)-(a.c+a.b));
- rk.innerHTML="<thead><tr><th>Secteur</th><th>Trajet</th><th>Cèpe auj.</th><th>Bai auj.</th><th>Cèpe 4 j</th><th>Bai 4 j</th></tr></thead><tbody></tbody>";
+ const rows=all.map(x=>({n:x.s.n,t:x.s.t,c:x.res[ti].cepe,c4:avg(x,"cepe")})).sort((a,b)=>(b.c-a.c)||(b.c4-a.c4));
+ rk.innerHTML="<thead><tr><th>Secteur</th><th>Trajet</th><th>Aujourd'hui</th><th>Moyenne 4 j</th></tr></thead><tbody></tbody>";
  const tb=rk.querySelector("tbody");
- for(const r of rows){const tr=document.createElement("tr");[r.n,r.t,r.c,r.b,r.c4,r.b4].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i>1){td.className="num";td.style.color=color(v)}tr.appendChild(td)});tb.appendChild(tr)}
+ for(const r of rows){const tr=document.createElement("tr");[r.n,r.t,r.c,r.c4].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i>1){td.className="num";td.style.color=color(v)}tr.appendChild(td)});tb.appendChild(tr)}
  // cards
  const grid=document.getElementById("grid");grid.innerHTML="";
  const n=to-from+1;const cols=`repeat(${n},1fr)`;
@@ -149,9 +147,9 @@ async function main(){
   const m=document.createElement("div");m.className="meta";const r0=x.res[ti];
   m.textContent=`${x.s.t} du Bouscat · pluie ${r0.r.toFixed(0)} mm · sol ${r0.sm!=null?r0.sm.toFixed(1):"?"} °C · humidité ${r0.hm!=null?Math.round(r0.hm*100):"?"} %`;c.appendChild(m);
   const now=document.createElement("div");now.className="now";
-  for(const k of ["cepe","bai"]){const d=document.createElement("div");d.innerHTML=`<div class="t"></div><div class="n"></div>`;d.querySelector(".t").textContent=SP[k].nom+" aujourd'hui";const nn=d.querySelector(".n");nn.textContent=r0[k];nn.style.color=color(r0[k]);now.appendChild(d)}
+  for(const k of ["cepe"]){const d=document.createElement("div");d.innerHTML=`<div class="t"></div><div class="n"></div>`;d.querySelector(".t").textContent=SP[k].nom+" aujourd'hui";const nn=d.querySelector(".n");nn.textContent=r0[k];nn.style.color=color(r0[k]);now.appendChild(d)}
   c.appendChild(now);
-  for(const k of ["cepe","bai"]){
+  for(const k of ["cepe"]){
    const row=document.createElement("div");row.className="row";const lab=document.createElement("div");lab.className="lab";lab.textContent=SP[k].nom;row.appendChild(lab);
    const cells=document.createElement("div");cells.className="cells";cells.style.gridTemplateColumns=cols;
    for(let i=from;i<=to;i++){const r=x.res[i];const e=document.createElement("div");e.className="c"+(i===ti?" today":"")+(i>ti?" fc":"");e.style.background=color(r[k]);
