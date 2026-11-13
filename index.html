@@ -56,8 +56,6 @@ table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:6
 <h1>Indice de pousse : cèpes</h1>
 <div class="sub">Secteurs forestiers au nord et à l'ouest du Bouscat, jusqu'à 1 h de route. Calcul simple à partir de la pluie et de la température du sol.</div>
 <div class="status" id="status">Chargement des données météo…</div>
-<div class="top" id="top"></div>
-<table class="rk" id="rank"></table>
 <div class="legend">
  <span><span class="sw" style="background:#d9d3c5"></span>0 à 20 : nul</span>
  <span><span class="sw" style="background:#e9c46a"></span>20 à 40 : faible</span>
@@ -102,7 +100,7 @@ const SECTEURS=[
  {n:"Carcans",lat:45.08,lon:-1.03,t:"55 min"},
  {n:"Hourtin",lat:45.19,lon:-1.03,t:"1 h"}
 ];
-const SP={cepe:{nom:"Cèpe",lo0:6,lo1:11,hi1:18,hi0:23,gel:0.3}};
+const SP={cepe:{nom:"Indice de pousse",lo0:6,lo1:11,hi1:18,hi0:23,gel:0.3}};
 const PAST=40,FUT=16,SHOW_BEFORE=3,SHOW_AFTER=14;
 function tf(t,s){if(t==null)return 0;if(t>=s.lo1&&t<=s.hi1)return 1;if(t<=s.lo0||t>=s.hi0)return 0;return t<s.lo1?(t-s.lo0)/(s.lo1-s.lo0):(s.hi0-t)/(s.hi0-s.hi1)}
 function color(v){return v<20?"#d9d3c5":v<40?"#e9c46a":v<60?"#e07a2e":v<80?"#b5401c":"#6b1d0f"}
@@ -176,19 +174,6 @@ async function main(){
  const ti=all[0].res.findIndex(x=>x&&x.d===today);
  st.textContent="Mis à jour le "+new Date().toLocaleString("fr-FR",{dateStyle:"long",timeStyle:"short"})+".";
  const from=ti-SHOW_BEFORE,to=Math.min(ti+SHOW_AFTER,all[0].res.length-1);
- // KPIs
- const best=(k,a,b)=>{let m={v:-1};for(const x of all)for(let i=a;i<=b;i++){const r=x.res[i];if(r&&r[k]>m.v)m={v:r[k],n:x.s.n,d:r.d}}return m};
- const top=document.getElementById("top");top.innerHTML="";
- const mk=(l,m)=>{const d=document.createElement("div");d.className="kpi";d.innerHTML=`<div class="l"></div><div class="v"></div><div class="d"></div>`;d.querySelector(".l").textContent=l;d.querySelector(".v").textContent=m.v+" / 100";d.querySelector(".v").style.color=color(m.v);d.querySelector(".d").textContent=m.n+", "+fmt(m.d);top.appendChild(d)};
- mk("Meilleur secteur cèpe aujourd'hui",best("cepe",ti,ti));
- mk("Meilleur jour cèpe (7 prochains jours)",best("cepe",ti+1,ti+7));
- // ranking
- const rk=document.getElementById("rank");
- const avg=(x,k)=>{let s=0,n=0;for(let i=ti;i<=ti+3;i++){const r=x.res[i];if(r){s+=r[k];n++}}return n?Math.round(s/n):0};
- const rows=all.map(x=>({n:x.s.n,t:x.s.t,c:x.res[ti].cepe,c4:avg(x,"cepe"),p:x.age.main?x.age.main.ph:null})).sort((a,b)=>(b.c-a.c)||(b.c4-a.c4));
- rk.innerHTML="<thead><tr><th>Secteur</th><th>Trajet</th><th>Pousse</th><th>Aujourd'hui</th><th>Moyenne 4 j</th></tr></thead><tbody></tbody>";
- const tb=rk.querySelector("tbody");
- for(const r of rows){const tr=document.createElement("tr");[r.n,r.t].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});const tp=document.createElement("td");const sp=document.createElement("span");sp.className="pill";sp.style.margin="0";sp.style.background=r.p?r.p.c:"#9b958a";sp.textContent=r.p?r.p.l:"Aucune";tp.appendChild(sp);tr.appendChild(tp);[r.c,r.c4].forEach(v=>{const td=document.createElement("td");td.textContent=v;td.className="num";td.style.color=color(v);tr.appendChild(td)});tb.appendChild(tr)}
  // cards
  const grid=document.getElementById("grid");grid.innerHTML="";
  const n=to-from+1;const cols=`repeat(${n},1fr)`;
@@ -201,7 +186,7 @@ async function main(){
   for(const k of ["cepe"]){const d=document.createElement("div");d.innerHTML=`<div class="t"></div><div class="n"></div>`;d.querySelector(".t").textContent=SP[k].nom+" aujourd'hui";const nn=d.querySelector(".n");nn.textContent=r0[k];nn.style.color=color(r0[k]);now.appendChild(d)}
   c.appendChild(now);
   for(const k of ["cepe"]){
-   const row=document.createElement("div");row.className="row";const lab=document.createElement("div");lab.className="lab";lab.textContent=SP[k].nom;row.appendChild(lab);
+   const row=document.createElement("div");row.className="row";const lab=document.createElement("div");lab.className="lab";lab.textContent="Indice";row.appendChild(lab);
    const cells=document.createElement("div");cells.className="cells";cells.style.gridTemplateColumns=cols;
    for(let i=from;i<=to;i++){const r=x.res[i];const e=document.createElement("div");e.className="c"+(i===ti?" today":"")+(i>ti?" fc":"");e.style.background=color(r[k]);
     const html=`<b>${SP[k].nom} · ${fmt(r.d)}${i>ti?" (prévision)":""}</b><br>Indice : ${r[k]} / 100<br>Pluie J-21 à J-6 : ${r.r.toFixed(0)} mm<br>Sol (6 cm) : ${r.sm!=null?r.sm.toFixed(1):"?"} °C<br>Humidité du sol : ${r.hm!=null?Math.round(r.hm*100):"?"} %${r.gel?"<br>Gel récent":""}`;
