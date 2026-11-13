@@ -81,7 +81,7 @@ table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:6
 <li><b>Température du sol</b> (à 6 cm, moyenne des 4 derniers jours) : optimum 11 à 18 °C. Le facteur baisse en dehors, jusqu'à 0 à 6 et 23 °C.</li>
 <li><b>Gel</b> : une nuit sous 0 °C dans les 4 derniers jours divise fortement le score (×0,3).</li>
 </ol>
-<p><b>Âge des pousses</b> : chaque pluie déclenchante (au moins 20 mm en 3 jours) lance une vague, affichée sur sa propre ligne. Depuis la pluie, on additionne chaque jour la température du sol au-dessus de 5 °C : ce sont les degrés-jours, affichés dans chaque case. Moins de 80 : pas encore sortis. 80 à 110 : jeunes. 110 à 150 : pleine pousse. 150 à 190 : vieux. Au-delà : terminé. Ces seuils sont des estimations de départ, à ajuster avec les sorties.</p>
+<p><b>Âge des pousses</b> : chaque pluie déclenchante (au moins 20 mm en 3 jours) lance une vague, affichée sur sa propre ligne et datée du dernier jour de forte pluie (5 mm ou plus). Depuis la pluie, on additionne chaque jour la température du sol au-dessus de 5 °C : ce sont les degrés-jours, affichés dans chaque case. Moins de 80 : pas encore sortis. 80 à 110 : jeunes. 110 à 150 : pleine pousse. 150 à 190 : vieux. Au-delà : terminé. Ces seuils sont des estimations de départ, à ajuster avec les sorties.</p>
 <p>Ce sont des repères de cueilleurs, pas un modèle validé : l'indice dit quand les conditions sont réunies, pas qu'il y aura des champignons. Le sol, l'exposition et la forêt de chaque coin comptent autant.</p>
 </details>
 <div class="foot">Données météo : <a href="https://open-meteo.com/">Open-Meteo.com</a> (CC BY 4.0), mises à jour à chaque ouverture de la page. Prévisions jusqu'à 14 jours, moins fiables au-delà de 7 jours.</div>
@@ -132,7 +132,7 @@ function age(loc,ti){
  const dm=i=>{const v=loc.hourly.soil_temperature_6cm.slice(i*24,i*24+24).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
  const r3=t=>rain[t]+(rain[t-1]||0)+(rain[t-2]||0);
  let ev=[];
- for(let t=Math.max(2,ti-35);t<=ti;t++){if(r3(t)>=20&&(t===ti||r3(t+1)<20)){if(ev.length&&t-ev[ev.length-1]<=5)ev[ev.length-1]=t;else ev.push(t)}}
+ for(let t=Math.max(2,ti-35);t<=ti;t++){if(r3(t)>=20&&(t===ti||r3(t+1)<20)){let u=t;while(u>t-2&&rain[u]<5)u--;if(ev.length&&u-ev[ev.length-1]<=5)ev[ev.length-1]=u;else ev.push(u)}}
  const dj=(t,i)=>{let s=0;for(let k=t+1;k<=i;k++){const v=dm(k);if(v!=null)s+=Math.max(0,v-5)}return s};
  const res=ev.map(t=>{const d=dj(t,ti);let sortie=null;if(d<80){let s=d;for(let k=ti+1;k<days.length;k++){const v=dm(k);if(v!=null)s+=Math.max(0,v-5);if(s>=80){sortie=days[k];break}}}return{t,d:days[t],dj:Math.round(d),ph:phase(d),sortie}});
  const active=res.filter(e=>e.dj>=80&&e.dj<190);
@@ -156,7 +156,7 @@ function vagues(loc,from,to){
  const dm=i=>{const v=loc.hourly.soil_temperature_6cm.slice(i*24,i*24+24).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
  const r3=t=>rain[t]+(rain[t-1]||0)+(rain[t-2]||0);
  let ev=[];
- for(let t=2;t<=to;t++){if(r3(t)>=20&&(t===to||r3(t+1)<20)){if(ev.length&&t-ev[ev.length-1]<=5)ev[ev.length-1]=t;else ev.push(t)}}
+ for(let t=2;t<=to;t++){if(r3(t)>=20&&(t===to||r3(t+1)<20)){let u=t;while(u>t-2&&rain[u]<5)u--;if(ev.length&&u-ev[ev.length-1]<=5)ev[ev.length-1]=u;else ev.push(u)}}
  const out=[];
  for(const t of ev){const dj=[];let s=0;for(let k=t+1;k<=to;k++){const v=dm(k);if(v!=null)s+=Math.max(0,v-5);dj[k]=s}dj[t]=0;
   const atFrom=t>=from?0:dj[from];if(atFrom>=190)continue;out.push({t,d:days[t],dj,mm:Math.round(r3(t))})}
