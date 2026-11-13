@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indice de pousse : cèpes et bolets bais</title>
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--ink:#2b2a26;--mute:#7a756a;--line:#e4ddcf;--cep:#7a4a1f;--bai:#4a5d23;--accent:#a3501e}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 2px;color:var(--cep)}
+.sub{color:var(--mute);font-size:13px;margin-bottom:14px}
+.status{font-size:13px;color:var(--mute);margin:6px 0 14px}
+.top{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi .l{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-size:20px;font-weight:700;margin-top:4px}
+.kpi .d{font-size:13px;color:var(--mute);margin-top:2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12px;color:var(--mute);margin:4px 0 10px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.sec h2{font-size:16px;margin:0 0 2px}
+.sec .meta{font-size:12px;color:var(--mute);margin-bottom:8px}
+.now{display:flex;gap:10px;margin-bottom:10px}
+.now div{flex:1;border-radius:8px;padding:6px 8px;background:#faf8f3;border:1px solid var(--line)}
+.now .n{font-size:22px;font-weight:700}
+.now .t{font-size:11px;color:var(--mute)}
+.row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.row .lab{width:40px;font-size:11px;color:var(--mute);flex:none}
+.cells{display:grid;flex:1;gap:2px}
+.c{height:22px;border-radius:3px;position:relative;cursor:default;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff}
+.c.today{outline:2px solid var(--ink);outline-offset:1px}
+.c.fc{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 3px,transparent 3px 6px)}
+.rain{display:grid;flex:1;gap:2px;align-items:end;height:30px}
+.rain span{background:#6a8fb3;border-radius:2px 2px 0 0;min-height:1px}
+.days{display:grid;flex:1;gap:2px;font-size:9px;color:var(--mute);text-align:center}
+#tip{position:fixed;pointer-events:none;background:#2b2a26;color:#fff;font-size:12px;padding:6px 8px;border-radius:6px;max-width:240px;display:none;z-index:9;line-height:1.35}
+details{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+summary{cursor:pointer;font-weight:600}
+.foot{font-size:11px;color:var(--mute);margin:14px 0}
+table.rk{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+table.rk th,table.rk td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.rk th{font-size:11px;color:var(--mute);text-transform:uppercase}
+table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Indice de pousse : cèpes et bolets bais</h1>
+<div class="sub">Secteurs forestiers au nord et à l'ouest du Bouscat, jusqu'à 1 h de route. Calcul simple à partir de la pluie et de la température du sol.</div>
+<div class="status" id="status">Chargement des données météo…</div>
+<div class="top" id="top"></div>
+<table class="rk" id="rank"></table>
+<div class="legend">
+ <span><span class="sw" style="background:#d9d3c5"></span>0 à 20 : nul</span>
+ <span><span class="sw" style="background:#e9c46a"></span>20 à 40 : faible</span>
+ <span><span class="sw" style="background:#e07a2e"></span>40 à 60 : moyen</span>
+ <span><span class="sw" style="background:#b5401c"></span>60 à 80 : bon</span>
+ <span><span class="sw" style="background:#6b1d0f"></span>80 à 100 : très bon</span>
+ <span>Hachuré : prévision</span><span>Cadre : aujourd'hui</span>
+</div>
+<div class="grid" id="grid"></div>
+<details>
+<summary>Comment l'indice est calculé</summary>
+<p>Pour chaque jour et chaque secteur, un score de 0 à 100 multiplie quatre facteurs :</p>
+<ol>
+<li><b>Pluie déclenchante</b> : le cumul de pluie tombé entre 25 et 6 jours avant le jour visé. 30 mm ou plus donnent le maximum ; moins donne un facteur proportionnel. Les bolets sortent en général 1 à 3 semaines après une bonne pluie.</li>
+<li><b>Humidité du sol</b> (3 à 9 cm, moyenne des 4 derniers jours) : nulle sous 10 %, maximale au-dessus de 20 %. Un sol qui sèche arrête la pousse.</li>
+<li><b>Température du sol</b> (à 6 cm, moyenne des 4 derniers jours) : optimum 11 à 18 °C pour le cèpe, 7 à 16 °C pour le bai. Le facteur baisse en dehors, jusqu'à 0 à 6 et 23 °C pour le cèpe, 3 et 21 °C pour le bai.</li>
+<li><b>Gel</b> : une nuit sous 0 °C dans les 4 derniers jours divise fortement le score du cèpe (×0,3) et moins celui du bai (×0,6).</li>
+</ol>
+<p>Ce sont des repères de cueilleurs, pas un modèle validé : l'indice dit quand les conditions sont réunies, pas qu'il y aura des champignons. Le sol, l'exposition et la forêt de chaque coin comptent autant.</p>
+</details>
+<div class="foot">Données météo : <a href="https://open-meteo.com/">Open-Meteo.com</a> (CC BY 4.0), mises à jour à chaque ouverture de la page. Prévisions jusqu'à 14 jours, moins fiables au-delà de 7 jours.</div>
+</div>
+<div id="tip"></div>
+<script>
+const SECTEURS=[
+ {n:"Saint-Médard / Saint-Aubin",lat:44.90,lon:-0.78,t:"20 min"},
+ {n:"Saint-Jean-d'Illac / Martignas",lat:44.83,lon:-0.82,t:"25 min"},
+ {n:"Sainte-Hélène",lat:44.97,lon:-0.88,t:"35 min"},
+ {n:"Le Temple / Saumos",lat:44.90,lon:-0.95,t:"35 min"},
+ {n:"Castelnau / Avensan",lat:45.03,lon:-0.82,t:"35 min"},
+ {n:"Saint-Laurent / Listrac",lat:45.12,lon:-0.86,t:"45 min"},
+ {n:"Le Porge (forêt)",lat:44.88,lon:-1.08,t:"45 min"},
+ {n:"Lacanau (forêt)",lat:44.99,lon:-1.07,t:"50 min"},
+ {n:"Carcans",lat:45.08,lon:-1.03,t:"55 min"},
+ {n:"Hourtin",lat:45.19,lon:-1.03,t:"1 h"}
+];
+const SP={cepe:{nom:"Cèpe",lo0:6,lo1:11,hi1:18,hi0:23,gel:0.3},bai:{nom:"Bai",lo0:3,lo1:7,hi1:16,hi0:21,gel:0.6}};
+const PAST=40,FUT=16,SHOW_BEFORE=3,SHOW_AFTER=14;
+function tf(t,s){if(t==null)return 0;if(t>=s.lo1&&t<=s.hi1)return 1;if(t<=s.lo0||t>=s.hi0)return 0;return t<s.lo1?(t-s.lo0)/(s.lo1-s.lo0):(s.hi0-t)/(s.hi0-s.hi1)}
+function color(v){return v<20?"#d9d3c5":v<40?"#e9c46a":v<60?"#e07a2e":v<80?"#b5401c":"#6b1d0f"}
+function fmt(d){const x=new Date(d+"T12:00");return x.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric"})}
+function compute(loc){
+ const days=loc.daily.time,rain=loc.daily.precipitation_sum.map(x=>x||0),tmin=loc.daily.temperature_2m_min;
+ const dm=(arr,i)=>{const v=arr.slice(i*24,i*24+24).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+ const soil=days.map((d,i)=>dm(loc.hourly.soil_temperature_6cm,i)),hum=days.map((d,i)=>dm(loc.hourly.soil_moisture_3_to_9cm,i));
+ const out=days.map((d,i)=>{
+  if(i<25)return null;
+  let r=0;for(let k=i-25;k<=i-6;k++)r+=rain[k];
+  const hv=hum.slice(i-3,i+1).filter(x=>x!=null);const hm=hv.length?hv.reduce((a,b)=>a+b,0)/hv.length:null;
+  const H=hm==null?0.5:Math.max(0,Math.min(1,(hm-0.10)/0.10));
+  const st=soil.slice(i-3,i+1).filter(x=>x!=null);const sm=st.length?st.reduce((a,b)=>a+b,0)/st.length:null;
+  const gel=tmin.slice(i-3,i+1).some(x=>x!=null&&x<0);
+  const R=Math.min(1,r/30);const res={d,r,sm,hm,gel,rain:rain[i]};
+  for(const k in SP){const s=SP[k];res[k]=Math.round(100*R*H*tf(sm,s)*(gel?s.gel:1))}
+  return res});
+ return out;
+}
+const tip=document.getElementById("tip");
+function showTip(e,html){tip.innerHTML=html;tip.style.display="block";const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+12,y=e.clientY+12;if(x+w>innerWidth-6)x=e.clientX-w-12;if(y+h>innerHeight-6)y=e.clientY-h-12;tip.style.left=Math.max(6,x)+"px";tip.style.top=Math.max(6,y)+"px"}
+function hideTip(){tip.style.display="none"}
+document.addEventListener("touchstart",e=>{if(!e.target.closest(".c"))hideTip()},{passive:true});
+async function main(){
+ const st=document.getElementById("status");
+ const url="https://api.open-meteo.com/v1/forecast?latitude="+SECTEURS.map(s=>s.lat).join(",")+"&longitude="+SECTEURS.map(s=>s.lon).join(",")+"&daily=precipitation_sum,temperature_2m_min&hourly=soil_temperature_6cm,soil_moisture_3_to_9cm&past_days="+PAST+"&forecast_days="+FUT+"&timezone=Europe%2FParis";
+ let j;
+ try{const r=await fetch(url);if(!r.ok)throw new Error("HTTP "+r.status);j=await r.json();if(!Array.isArray(j))j=[j]}
+ catch(err){st.textContent="Impossible de charger la météo ("+err.message+"). Vérifie ta connexion puis recharge la page.";return}
+ const today=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Paris"});
+ const all=SECTEURS.map((s,i)=>({s,res:compute(j[i])}));
+ const ti=all[0].res.findIndex(x=>x&&x.d===today);
+ st.textContent="Mis à jour le "+new Date().toLocaleString("fr-FR",{dateStyle:"long",timeStyle:"short"})+".";
+ const from=ti-SHOW_BEFORE,to=Math.min(ti+SHOW_AFTER,all[0].res.length-1);
+ // KPIs
+ const best=(k,a,b)=>{let m={v:-1};for(const x of all)for(let i=a;i<=b;i++){const r=x.res[i];if(r&&r[k]>m.v)m={v:r[k],n:x.s.n,d:r.d}}return m};
+ const top=document.getElementById("top");top.innerHTML="";
+ const mk=(l,m)=>{const d=document.createElement("div");d.className="kpi";d.innerHTML=`<div class="l"></div><div class="v"></div><div class="d"></div>`;d.querySelector(".l").textContent=l;d.querySelector(".v").textContent=m.v+" / 100";d.querySelector(".v").style.color=color(m.v);d.querySelector(".d").textContent=m.n+", "+fmt(m.d);top.appendChild(d)};
+ mk("Meilleur secteur cèpe aujourd'hui",best("cepe",ti,ti));
+ mk("Meilleur secteur bai aujourd'hui",best("bai",ti,ti));
+ mk("Meilleur jour cèpe (7 prochains jours)",best("cepe",ti+1,ti+7));
+ mk("Meilleur jour bai (7 prochains jours)",best("bai",ti+1,ti+7));
+ // ranking
+ const rk=document.getElementById("rank");
+ const avg=(x,k)=>{let s=0,n=0;for(let i=ti;i<=ti+3;i++){const r=x.res[i];if(r){s+=r[k];n++}}return n?Math.round(s/n):0};
+ const rows=all.map(x=>({n:x.s.n,t:x.s.t,c:x.res[ti].cepe,b:x.res[ti].bai,c4:avg(x,"cepe"),b4:avg(x,"bai")})).sort((a,b)=>(b.c+b.b)-(a.c+a.b));
+ rk.innerHTML="<thead><tr><th>Secteur</th><th>Trajet</th><th>Cèpe auj.</th><th>Bai auj.</th><th>Cèpe 4 j</th><th>Bai 4 j</th></tr></thead><tbody></tbody>";
+ const tb=rk.querySelector("tbody");
+ for(const r of rows){const tr=document.createElement("tr");[r.n,r.t,r.c,r.b,r.c4,r.b4].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i>1){td.className="num";td.style.color=color(v)}tr.appendChild(td)});tb.appendChild(tr)}
+ // cards
+ const grid=document.getElementById("grid");grid.innerHTML="";
+ const n=to-from+1;const cols=`repeat(${n},1fr)`;
+ for(const x of all){
+  const c=document.createElement("div");c.className="sec";
+  const h=document.createElement("h2");h.textContent=x.s.n;c.appendChild(h);
+  const m=document.createElement("div");m.className="meta";const r0=x.res[ti];
+  m.textContent=`${x.s.t} du Bouscat · pluie ${r0.r.toFixed(0)} mm · sol ${r0.sm!=null?r0.sm.toFixed(1):"?"} °C · humidité ${r0.hm!=null?Math.round(r0.hm*100):"?"} %`;c.appendChild(m);
+  const now=document.createElement("div");now.className="now";
+  for(const k of ["cepe","bai"]){const d=document.createElement("div");d.innerHTML=`<div class="t"></div><div class="n"></div>`;d.querySelector(".t").textContent=SP[k].nom+" aujourd'hui";const nn=d.querySelector(".n");nn.textContent=r0[k];nn.style.color=color(r0[k]);now.appendChild(d)}
+  c.appendChild(now);
+  for(const k of ["cepe","bai"]){
+   const row=document.createElement("div");row.className="row";const lab=document.createElement("div");lab.className="lab";lab.textContent=SP[k].nom;row.appendChild(lab);
+   const cells=document.createElement("div");cells.className="cells";cells.style.gridTemplateColumns=cols;
+   for(let i=from;i<=to;i++){const r=x.res[i];const e=document.createElement("div");e.className="c"+(i===ti?" today":"")+(i>ti?" fc":"");e.style.background=color(r[k]);
+    const html=`<b>${SP[k].nom} · ${fmt(r.d)}${i>ti?" (prévision)":""}</b><br>Indice : ${r[k]} / 100<br>Pluie J-25 à J-6 : ${r.r.toFixed(0)} mm<br>Sol (6 cm) : ${r.sm!=null?r.sm.toFixed(1):"?"} °C<br>Humidité du sol : ${r.hm!=null?Math.round(r.hm*100):"?"} %${r.gel?"<br>Gel récent":""}`;
+    e.addEventListener("mousemove",ev=>showTip(ev,html));e.addEventListener("mouseleave",hideTip);e.addEventListener("click",ev=>showTip(ev,html));
+    cells.appendChild(e)}
+   row.appendChild(cells);c.appendChild(row)}
+  const rr=document.createElement("div");rr.className="row";const rl=document.createElement("div");rl.className="lab";rl.textContent="Pluie";rr.appendChild(rl);
+  const rain=document.createElement("div");rain.className="rain";rain.style.gridTemplateColumns=cols;
+  for(let i=from;i<=to;i++){const r=x.res[i];const sp=document.createElement("span");sp.style.height=Math.min(30,r.rain*1.2)+"px";sp.addEventListener("mousemove",ev=>showTip(ev,`${fmt(r.d)} : ${r.rain.toFixed(1)} mm`));sp.addEventListener("mouseleave",hideTip);rain.appendChild(sp)}
+  rr.appendChild(rain);c.appendChild(rr);
+  const dr=document.createElement("div");dr.className="row";const dl=document.createElement("div");dl.className="lab";dr.appendChild(dl);
+  const days=document.createElement("div");days.className="days";days.style.gridTemplateColumns=cols;
+  for(let i=from;i<=to;i++){const sp=document.createElement("span");const dd=new Date(x.res[i].d+"T12:00");sp.textContent=(i-from)%2===0?dd.getDate():"";days.appendChild(sp)}
+  dr.appendChild(days);c.appendChild(dr);
+  grid.appendChild(c);
+ }
+}
+main();
+</script>
+</body>
+</html>
