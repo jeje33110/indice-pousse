@@ -49,6 +49,7 @@ table.rk td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:6
 .cells.fl .c{font-size:8px;font-weight:600}
 .c.stop{opacity:.38;background-image:linear-gradient(135deg,transparent 45%,#fff 45%,#fff 55%,transparent 55%)!important}
 .stopsw{background:#3f6b1f;opacity:.38;background-image:linear-gradient(135deg,transparent 45%,#fff 45%,#fff 55%,transparent 55%)}
+.c.sel{box-shadow:0 0 0 2px #fff,0 0 0 4px #1f6feb;z-index:2;opacity:1}
 .c.empty{background:transparent!important;outline:none}
 .row .lab.w{width:40px;font-size:9px;line-height:1.05}
 </style>
@@ -164,6 +165,7 @@ function vagues(loc,from,to){
   out.push({t,d:days[t],dj,kind:c.kind,info})}
  return out;
 }
+document.addEventListener("click",ev=>{const c=ev.target.closest(".c:not(.empty)");document.querySelectorAll(".c.sel").forEach(x=>x.classList.remove("sel"));if(c)c.classList.add("sel");else hideTip()});
 async function main(){
  const st=document.getElementById("status");
  const url="https://api.open-meteo.com/v1/forecast?latitude="+SECTEURS.map(s=>s.lat).join(",")+"&longitude="+SECTEURS.map(s=>s.lon).join(",")+"&daily=precipitation_sum,temperature_2m_min&hourly=soil_temperature_6cm,soil_moisture_3_to_9cm&past_days="+PAST+"&forecast_days="+FUT+"&timezone=Europe%2FParis";
